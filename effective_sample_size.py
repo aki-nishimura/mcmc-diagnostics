@@ -105,13 +105,12 @@ def ar_process_fit(samples, max_ar_order=None, axis=0, normed=False):
         # Determine AR order.
         ar_order, ar_coef = ar_model.fit(x, max_ar_order)
 
-        mean = np.mean(x)
-        var = np.var(x)
         if ar_order == 0:
             auto_corr_time = 1
         else:
+            x_std = (x - np.mean(x)) / np.std(x)
             acorr = np.array([
-                compute_acorr(x, lag, mean, var) for lag in range(1, ar_order + 1)
+                _compute_acorr(x_std, lag) for lag in range(1, ar_order + 1)
             ])
             auto_corr_time = (1 - np.inner(acorr, ar_coef)) / (1 - np.sum(ar_coef)) ** 2
         ess[i] = 1 / auto_corr_time
@@ -140,7 +139,7 @@ def batch_means(samples, n_batch=25, axis=0, normed=False):
 
 
 def monotone_sequence(
-        samples, axis=0, normed=False, mu=None, sigma_sq=None, req_acorr=False):
+        samples, axis=0, normed=False, req_acorr=False):
     """
     Estimates effective sample sizes of samples along the specified axis
     with the monotone positive sequence estimator of "Practical Markov
@@ -150,11 +149,6 @@ def monotone_sequence(
 
     Parameters
     ----------
-    mu, sigma_sq : vectors for the mean E(x) and variance Var(x) if the
-        analytical (or accurately estimated) value is available. If provided,
-        it can stabilize the estimate of auto-correlations and hence ESS.
-        This is intended for research uses when one wants to
-        accurately quantify the asymptotic efficiency of a MCMC algorithm.
     req_acorr : bool
         If true, a list of estimated auto correlation sequences are returned as the
         second output.
@@ -170,10 +164,6 @@ def monotone_sequence(
 
     if samples.ndim == 1:
         samples = samples[:, np.newaxis]
-    if mu is None:
-        mu = np.mean(samples, axis)
-    if sigma_sq is None:
-        sigma_sq = np.var(samples, axis)
 
     d = samples.shape[1 - axis]
     ess = np.zeros(d)
@@ -183,7 +173,8 @@ def monotone_sequence(
             x = samples[:, j]
         else:
             x = samples[j, :]
-        ess_j, auto_cor_j = _monotone_sequence_1d(x, mu[j], sigma_sq[j])
+        x_std = (x - np.mean(x)) / np.std(x)
+        ess_j, auto_cor_j = _monotone_sequence_1d(x_std)
         ess[j] = ess_j
         auto_cor.append(auto_cor_j)
     if normed:
@@ -194,10 +185,11 @@ def monotone_sequence(
     return ess
 
 
-def _monotone_sequence_1d(x, mean, var):
+def _monotone_sequence_1d(x):
+    """ The time series `x` is assumed to be standardized. """
 
     # lag in [0, 1] case.
-    lag_one_autor_cor = compute_acorr(x, 1, mean, var)
+    lag_one_autor_cor = _compute_acorr(x, lag=1)
     running_min = 1. + lag_one_autor_cor
     auto_cor_sum = 1. + 2 * lag_one_autor_cor
     auto_cor = [1., lag_one_autor_cor]
@@ -206,7 +198,7 @@ def _monotone_sequence_1d(x, mean, var):
     while curr_lag + 2 < len(x):
 
         even_auto_cor, odd_auto_cor = [
-            compute_acorr(x, lag, mean, var) for lag in [curr_lag, curr_lag + 1]
+            _compute_acorr(x, lag) for lag in [curr_lag, curr_lag + 1]
         ]
         curr_lag += 2
         if even_auto_cor + odd_auto_cor < 0:
@@ -225,13 +217,12 @@ def _monotone_sequence_1d(x, mean, var):
     return ess, np.array(auto_cor)
 
 
-def compute_acorr(x, lag, mean, var):
+def _compute_acorr(x, lag):
     """
     Returns an estimate of the lag 'k' auto-correlation of a time series 'x'.
-    The estimator is biased towards zero due to the factor (n - k) / n.
+    The estimator is biased towards zero due to the factor (n - lag) / n.
     See Geyer (1992) Section 3.1 and the reference therein for justification.
     """
     n = len(x)
-    acorr = (x[:(n - lag)] - mean) * (x[lag:] - mean)
-    acorr = np.mean(acorr) / var * (n - lag) / n
+    acorr = np.mean(x[:(n - lag)] * x[lag:]) * (n - lag) / n
     return acorr
