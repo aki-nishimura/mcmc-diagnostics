@@ -222,9 +222,8 @@ def _monotone_sequence_1d(x, require_acorr):
 def _compute_auto_corr(x, lag):
     """
     Returns an estimate of the lag 'k' auto-correlation of a time series 'x'.
-    The estimator is biased towards zero due to the factor (n - lag) / n.
+    The estimator is biased towards zero due to the factor (len(x) - lag) / len(x).
     See Geyer (1992) Section 3.1 and the reference therein for justification.
     """
-    n = len(x)
-    acorr = np.mean(x[:(n - lag)] * x[lag:]) * (n - lag) / n
+    acorr = np.mean(x[:-lag] * x[lag:]) * (len(x) - lag) / len(x)
     return acorr
