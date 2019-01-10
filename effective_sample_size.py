@@ -139,7 +139,7 @@ def batch_means(samples, n_batch=25, axis=0, normed=False):
 
 
 def monotone_sequence(
-        samples, axis=0, normed=False, req_acorr=False):
+        samples, axis=0, normed=False, require_acorr=False):
     """
     Estimates effective sample sizes of samples along the specified axis
     with the monotone positive sequence estimator of "Practical Markov
@@ -149,9 +149,8 @@ def monotone_sequence(
 
     Parameters
     ----------
-    req_acorr : bool
-        If true, a list of estimated auto correlation sequences are returned as the
-        second output.
+    require_acorr : bool
+        If true, a list of estimated auto correlation sequences are returned.
 
     Returns
     -------
@@ -174,25 +173,27 @@ def monotone_sequence(
         else:
             x = samples[j, :]
         x_std = (x - np.mean(x)) / np.std(x)
-        ess_j, auto_cor_j = _monotone_sequence_1d(x_std)
+        ess_j, auto_cor_j = _monotone_sequence_1d(x_std, require_acorr)
         ess[j] = ess_j
-        auto_cor.append(auto_cor_j)
+        if require_acorr:
+            auto_cor.append(auto_cor_j)
     if normed:
         ess /= samples.shape[axis]
 
-    if req_acorr:
-        return ess, auto_cor
-    return ess
+    return ess, auto_cor
 
 
-def _monotone_sequence_1d(x):
+def _monotone_sequence_1d(x, require_acorr):
     """ The time series `x` is assumed to be standardized. """
+
+    auto_cor = []
 
     # lag in [0, 1] case.
     lag_one_autor_cor = _compute_acorr(x, lag=1)
     running_min = 1. + lag_one_autor_cor
     auto_cor_sum = 1. + 2 * lag_one_autor_cor
-    auto_cor = [1., lag_one_autor_cor]
+    if require_acorr:
+        auto_cor.extend((1., lag_one_autor_cor))
     curr_lag = 2
 
     while curr_lag + 2 < len(x):
@@ -206,7 +207,8 @@ def _monotone_sequence_1d(x):
 
         running_min = min(running_min, (even_auto_cor + odd_auto_cor))
         auto_cor_sum += 2 * running_min
-        auto_cor.extend((even_auto_cor, odd_auto_cor))
+        if require_acorr:
+            auto_cor.extend((even_auto_cor, odd_auto_cor))
 
     ess = len(x) / auto_cor_sum
     if auto_cor_sum < 0:
