@@ -197,29 +197,29 @@ def monotone_sequence(
 def _monotone_sequence_1d(x, mean, var):
 
     auto_cor = []
+    curr_lag = 0
+    
+    even_auto_cor, odd_auto_cor = [
+        compute_acorr(x, lag, mean, var) for lag in [curr_lag, curr_lag + 1]
+    ]
+    curr_lag += 2
+    auto_cor.extend((even_auto_cor, odd_auto_cor))
 
-    lag = 0
-    auto_cor_sum = 0
-    even_auto_cor = compute_acorr(x, lag, mean, var)
-    auto_cor.append(even_auto_cor)
-    auto_cor_sum -= even_auto_cor
+    auto_cor_sum = - even_auto_cor
+        # Adjust for the factor of 2 in the first iteration of the while loop.
+    running_min = float('inf')
 
-    lag += 1
-    odd_auto_cor = compute_acorr(x, lag, mean, var)
-    auto_cor.append(odd_auto_cor)
-    running_min = even_auto_cor + odd_auto_cor
+    while (even_auto_cor + odd_auto_cor > 0) and (curr_lag + 2 < len(x)):
 
-    while (even_auto_cor + odd_auto_cor > 0) and (lag + 2 < len(x)):
         running_min = min(running_min, (even_auto_cor + odd_auto_cor))
-        auto_cor_sum = auto_cor_sum + 2 * running_min
+        auto_cor_sum += 2 * running_min
 
-        lag += 1
-        even_auto_cor = compute_acorr(x, lag, mean, var)
-        auto_cor.append(even_auto_cor)
-
-        lag = lag + 1
-        odd_auto_cor = compute_acorr(x, lag, mean, var)
-        auto_cor.append(odd_auto_cor)
+        even_auto_cor, odd_auto_cor = [
+            compute_acorr(x, lag, mean, var) for lag in
+            [curr_lag, curr_lag + 1]
+        ]
+        curr_lag += 2
+        auto_cor.extend((even_auto_cor, odd_auto_cor))
 
     ess = len(x) / auto_cor_sum
     if auto_cor_sum < 0:
