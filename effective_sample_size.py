@@ -10,8 +10,8 @@ below and the references therein:
 """
 
 import numpy as np
-from statsmodels.tsa.ar_model import AR
 import os # Necessary for coda_ess_external
+from . import ar_model
 
 
 def r_coda(samples, axis=0, normed=False, R_call='rpy', n_digit=18):
@@ -90,7 +90,7 @@ def coda_external(samples, axis=0, normed=False, n_digit=18):
     return ess
 
 
-def ar_process_fit(samples, maxlag=50, axis=0, normed=False):
+def ar_process_fit(samples, max_ar_order=None, axis=0, normed=False):
 
     if samples.ndim == 1:
         samples = samples[:, np.newaxis]
@@ -103,28 +103,23 @@ def ar_process_fit(samples, maxlag=50, axis=0, normed=False):
         x = np.take(samples, i, 1 - axis)
 
         # Determine AR order.
-        ar_order, ar_coef = _fit_ar_process(x, maxlag)
+        ar_order, ar_coef = ar_model.fit(x, max_ar_order)
 
         mean = np.mean(x)
         var = np.var(x)
-        acorr = np.array([
-            compute_acorr(x, lag, mean, var) for lag in range(1, ar_order + 1)
-        ])
-        auto_corr_time = (1 - np.inner(acorr, ar_coef)) / (1 - np.sum(ar_coef)) ** 2
+        if ar_order == 0:
+            auto_corr_time = 1
+        else:
+            acorr = np.array([
+                compute_acorr(x, lag, mean, var) for lag in range(1, ar_order + 1)
+            ])
+            auto_corr_time = (1 - np.inner(acorr, ar_coef)) / (1 - np.sum(ar_coef)) ** 2
         ess[i] = 1 / auto_corr_time
 
     if not normed:
         ess *= samples.shape[axis]
 
     return ess
-
-
-def _fit_ar_process(x, maxlag, ic='aic'):
-    model = AR(x)
-    ar_result = model.fit(maxlag, ic=ic)
-    ar_order = ar_result.k_ar
-    ar_coef = ar_result.params[1:] # Exclude the mean
-    return ar_order, ar_coef
 
 
 def batch_means(samples, n_batch=25, axis=0, normed=False):
