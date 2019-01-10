@@ -196,35 +196,30 @@ def monotone_sequence(
 
 def _monotone_sequence_1d(x, mean, var):
 
-    auto_cor = []
-    curr_lag = 0
-    
-    even_auto_cor, odd_auto_cor = [
-        compute_acorr(x, lag, mean, var) for lag in [curr_lag, curr_lag + 1]
-    ]
-    curr_lag += 2
-    auto_cor.extend((even_auto_cor, odd_auto_cor))
+    # lag in [0, 1] case.
+    lag_one_autor_cor = compute_acorr(x, 1, mean, var)
+    running_min = 1. + lag_one_autor_cor
+    auto_cor_sum = 1. + 2 * lag_one_autor_cor
+    auto_cor = [1., lag_one_autor_cor]
+    curr_lag = 2
 
-    auto_cor_sum = - even_auto_cor
-        # Adjust for the factor of 2 in the first iteration of the while loop.
-    running_min = float('inf')
+    while curr_lag + 2 < len(x):
 
-    while (even_auto_cor + odd_auto_cor > 0) and (curr_lag + 2 < len(x)):
+        even_auto_cor, odd_auto_cor = [
+            compute_acorr(x, lag, mean, var) for lag in [curr_lag, curr_lag + 1]
+        ]
+        curr_lag += 2
+        if even_auto_cor + odd_auto_cor < 0:
+            break
 
         running_min = min(running_min, (even_auto_cor + odd_auto_cor))
         auto_cor_sum += 2 * running_min
-
-        even_auto_cor, odd_auto_cor = [
-            compute_acorr(x, lag, mean, var) for lag in
-            [curr_lag, curr_lag + 1]
-        ]
-        curr_lag += 2
         auto_cor.extend((even_auto_cor, odd_auto_cor))
 
     ess = len(x) / auto_cor_sum
     if auto_cor_sum < 0:
-        # Rare, but can happen with floating point errors when 'x' shows
-        # strong negative correlations.
+        # Rare, but can happen with floating point errors when the time series
+        # `x` shows strong negative correlations.
         ess = float('inf')
 
     return ess, np.array(auto_cor)
