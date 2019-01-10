@@ -10,7 +10,7 @@ from the statsmodels package and has been adapted by Aki Nishimura.
 
 import numpy as np
 import math
-from scipy.linalg import toeplitz
+from scipy.linalg import solve_toeplitz
 
 
 def fit(x, max_order=None):
@@ -69,14 +69,17 @@ def fit_via_yule_walker(x, order, acf_method="mle", demean=True):
         ar_coef = None
         innovation_var = auto_cov[0]
     else:
-        yule_walker_matrix = toeplitz(auto_cov[:-1])
-        ar_coef = np.linalg.solve(yule_walker_matrix, auto_cov[1:])
-            # TODO: use a Toeplitz matrix solver.
+        ar_coef = _solve_yule_walker(auto_cov)
         innovation_var = auto_cov[0] - (auto_cov[1:] * ar_coef).sum()
 
     aic = compute_aic(innovation_var, order, len(x))
 
     return ar_coef, aic
+
+
+def _solve_yule_walker(auto_cov):
+    ar_coef = solve_toeplitz(auto_cov[:-1], auto_cov[1:])
+    return ar_coef
 
 
 def compute_aic(innovation_var, ar_order, n_obs):
