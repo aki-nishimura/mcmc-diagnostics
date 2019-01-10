@@ -110,7 +110,7 @@ def ar_process_fit(samples, max_ar_order=None, axis=0, normed=False):
         else:
             x_std = (x - np.mean(x)) / np.std(x)
             acorr = np.array([
-                _compute_acorr(x_std, lag) for lag in range(1, ar_order + 1)
+                _compute_auto_corr(x_std, lag) for lag in range(1, ar_order + 1)
             ])
             auto_corr_time = (1 - np.inner(acorr, ar_coef)) / (1 - np.sum(ar_coef)) ** 2
         ess[i] = 1 / auto_corr_time
@@ -186,40 +186,40 @@ def monotone_sequence(
 def _monotone_sequence_1d(x, require_acorr):
     """ The time series `x` is assumed to be standardized. """
 
-    auto_cor = []
+    auto_corr = []
 
     # lag in [0, 1] case.
-    lag_one_autor_cor = _compute_acorr(x, lag=1)
-    running_min = 1. + lag_one_autor_cor
-    auto_cor_sum = 1. + 2 * lag_one_autor_cor
+    lag_one_auto_corr = _compute_auto_corr(x, lag=1)
+    running_min = 1. + lag_one_auto_corr
+    auto_corr_sum = 1. + 2 * lag_one_auto_corr
     if require_acorr:
-        auto_cor.extend((1., lag_one_autor_cor))
+        auto_corr.extend((1., lag_one_auto_corr))
     curr_lag = 2
 
     while curr_lag + 2 < len(x):
 
-        even_auto_cor, odd_auto_cor = [
-            _compute_acorr(x, lag) for lag in [curr_lag, curr_lag + 1]
+        even_auto_corr, odd_auto_corr = [
+            _compute_auto_corr(x, lag) for lag in [curr_lag, curr_lag + 1]
         ]
         curr_lag += 2
-        if even_auto_cor + odd_auto_cor < 0:
+        if even_auto_corr + odd_auto_corr < 0:
             break
 
-        running_min = min(running_min, (even_auto_cor + odd_auto_cor))
-        auto_cor_sum += 2 * running_min
+        running_min = min(running_min, (even_auto_corr + odd_auto_corr))
+        auto_corr_sum += 2 * running_min
         if require_acorr:
-            auto_cor.extend((even_auto_cor, odd_auto_cor))
+            auto_corr.extend((even_auto_corr, odd_auto_corr))
 
-    ess = len(x) / auto_cor_sum
-    if auto_cor_sum < 0:
+    ess = len(x) / auto_corr_sum
+    if auto_corr_sum < 0:
         # Rare, but can happen with floating point errors when the time series
         # `x` shows strong negative correlations.
         ess = float('inf')
 
-    return ess, np.array(auto_cor)
+    return ess, np.array(auto_corr)
 
 
-def _compute_acorr(x, lag):
+def _compute_auto_corr(x, lag):
     """
     Returns an estimate of the lag 'k' auto-correlation of a time series 'x'.
     The estimator is biased towards zero due to the factor (n - lag) / n.
