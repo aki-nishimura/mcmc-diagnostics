@@ -10,6 +10,7 @@ below and the references therein:
 """
 
 import numpy as np
+import math
 import os # Necessary for coda_ess_external
 from . import ar_model
 
@@ -99,6 +100,12 @@ def ar_process_fit(samples, max_ar_order=None, axis=0, normed=False):
 
     if samples.ndim == 1:
         samples = samples[:, np.newaxis]
+
+    if max_ar_order is None:
+        series_length = samples.shape[axis]
+        max_ar_order = min(
+            series_length - 1, math.ceil(10 * np.log10(series_length))
+        )
 
     n_param = samples.shape[1 - axis]
     ess = np.zeros(n_param)
