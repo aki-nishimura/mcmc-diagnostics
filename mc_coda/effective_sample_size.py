@@ -75,14 +75,17 @@ def ar_process_fit(samples, axis=0, normed=False, max_ar_order=None):
     if samples.ndim == 1:
         samples = samples[:, np.newaxis]
 
+    series_length = samples.shape[axis]
     if max_ar_order is None:
-        series_length = samples.shape[axis]
-        max_ar_order = min(
-            series_length - 1, math.ceil(10 * np.log10(series_length))
-        )
+        if series_length <= 100:
+            max_ar_order = math.ceil(series_length / 5)
+        else:
+            max_ar_order = math.ceil(10 * np.log10(series_length))
 
     n_param = samples.shape[1 - axis]
     ess = np.zeros(n_param)
+    if series_length == 1: # Edge case
+        return ess
 
     for i in range(n_param):
 
@@ -117,6 +120,11 @@ def batch_means(samples, axis=0, normed=False, n_batch=25):
         samples = samples[:, np.newaxis]
 
     n_sample = samples.shape[axis]
+    if 2 * n_batch > n_sample:
+        raise ValueError(
+            "The number of batches must be less than twice the number of samples."
+        )
+
     batch_index = np.linspace(0, n_sample, n_batch + 1).astype('int')
     batch_list = [
         np.take(samples, np.arange(batch_index[i], batch_index[i + 1]), axis)
@@ -159,6 +167,9 @@ def monotone_sequence(
     n_param = samples.shape[1 - axis]
     n_sample = samples.shape[axis]
     ess = np.zeros(n_param)
+    if n_sample <= 2: # Edge case.
+        return ess
+
     auto_cor = []
     for j in range(n_param):
         if axis == 0:
