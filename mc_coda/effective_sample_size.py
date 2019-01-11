@@ -102,7 +102,7 @@ def ar_process_fit(samples, axis=0, normed=False, max_ar_order=None):
         ess[i] = 1 / auto_corr_time
 
     if not normed:
-        ess *= samples.shape[axis]
+        ess *= series_length
 
     return ess
 
@@ -116,15 +116,16 @@ def batch_means(samples, axis=0, normed=False, n_batch=25):
     if samples.ndim == 1:
         samples = samples[:, np.newaxis]
 
-    batch_index = np.linspace(0, samples.shape[axis], n_batch + 1).astype('int')
+    n_sample = samples.shape[axis]
+    batch_index = np.linspace(0, n_sample, n_batch + 1).astype('int')
     batch_list = [
         np.take(samples, np.arange(batch_index[i], batch_index[i + 1]), axis)
         for i in range(n_batch)
     ]
     batch_mean = np.stack((np.mean(batch, axis) for batch in batch_list), axis)
-    mcmc_var = samples.shape[axis] / n_batch * np.var(batch_mean, axis)
+    mcmc_var = n_sample / n_batch * np.var(batch_mean, axis)
     ess = np.var(samples, axis) / mcmc_var
-    if not normed: ess *= samples.shape[axis]
+    if not normed: ess *= n_sample
 
     return ess
 
@@ -155,10 +156,11 @@ def monotone_sequence(
     if samples.ndim == 1:
         samples = samples[:, np.newaxis]
 
-    d = samples.shape[1 - axis]
-    ess = np.zeros(d)
+    n_param = samples.shape[1 - axis]
+    n_sample = samples.shape[axis]
+    ess = np.zeros(n_param)
     auto_cor = []
-    for j in range(d):
+    for j in range(n_param):
         if axis == 0:
             x = samples[:, j]
         else:
@@ -169,7 +171,7 @@ def monotone_sequence(
         if require_acorr:
             auto_cor.append(auto_cor_j)
     if normed:
-        ess /= samples.shape[axis]
+        ess /= n_sample
 
     return ess, auto_cor
 
