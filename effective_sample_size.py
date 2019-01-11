@@ -175,7 +175,7 @@ def _compute_auto_corr(x, lag):
     return acorr
 
 
-def r_coda(samples, axis=0, normed=False, R_call='rpy', n_digit=18):
+def _r_coda(samples, axis=0, normed=False, R_call='rpy', n_digit=18):
     """
     Estimates effective sample sizes of samples along the specified axis.
 
@@ -186,15 +186,15 @@ def r_coda(samples, axis=0, normed=False, R_call='rpy', n_digit=18):
         method runs an R script from bash.
     """
     if R_call == 'rpy':
-        ess = coda_rpy(samples, axis, normed)
+        ess = _coda_rpy(samples, axis, normed)
     elif R_call == 'external':
-        ess = coda_external(samples, axis, normed, n_digit)
+        ess = _coda_external(samples, axis, normed, n_digit)
     else:
         raise NotImplementedError()
     return ess
 
 
-def coda_rpy(samples, axis=0, normed=False):
+def _coda_rpy(samples, axis=0, normed=False):
     """
     Estimates effective sample sizes of samples along the specified axis by
     calling the R package 'coda' via rpy2. Requires the package rpy2 to be installed.
@@ -229,8 +229,8 @@ def coda_rpy(samples, axis=0, normed=False):
     return ess
 
 
-def coda_external(samples, axis=0, normed=False, n_digit=18,
-                  saveto_fname=None, loadfrom_fname=None):
+def _coda_external(samples, axis=0, normed=False, n_digit=18,
+                   saveto_fname=None, loadfrom_fname=None):
     """
     Estimates effective sample sizes of samples along the specified axis by
     calling the R package 'coda' externally. It is a hacky but convenient way
