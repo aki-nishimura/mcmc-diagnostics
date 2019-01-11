@@ -11,7 +11,6 @@ below and the references therein:
 
 import numpy as np
 import math
-import os # Necessary for coda_ess_external
 from . import ar_model
 import warnings
 
@@ -19,7 +18,6 @@ import warnings
 warnings.formatwarning = lambda message, category, filename, lineno, line=None: (
     '{:s}:{:d}: {:s}: {:s}\n'.format(filename, lineno, category.__name__, str(message))
 )
->>>>>>> d0a1600... Add proper warnings and exceptions when calling the R CODA package. Clean the code & add some comments too.
 
 
 def ar_process_fit(samples, max_ar_order=None, axis=0, normed=False):
@@ -238,6 +236,8 @@ def coda_external(samples, axis=0, normed=False, n_digit=18,
     calling the R package 'coda' externally. It is a hacky but convenient way
     to call an R function without having to install rpy2 and its dependencies.
     """
+
+    import os
 
     filenum = np.random.randint(2 ** 31)
         # Append a random number to a file name to avoid conflicts.
