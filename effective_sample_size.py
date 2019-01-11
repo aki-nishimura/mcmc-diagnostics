@@ -126,6 +126,10 @@ def batch_means(samples, n_batch=25, axis=0, normed=False):
     Estimates effective sample sizes of samples along the specified axis
     with the method of batch means.
     """
+
+    if samples.ndim == 1:
+        samples = samples[:, np.newaxis]
+
     batch_index = np.linspace(0, samples.shape[axis], n_batch + 1).astype('int')
     batch_list = [
         np.take(samples, np.arange(batch_index[i], batch_index[i + 1]), axis)
@@ -135,6 +139,7 @@ def batch_means(samples, n_batch=25, axis=0, normed=False):
     mcmc_var = samples.shape[axis] / n_batch * np.var(batch_mean, axis)
     ess = np.var(samples, axis) / mcmc_var
     if not normed: ess *= samples.shape[0]
+
     return ess
 
 
