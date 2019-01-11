@@ -124,7 +124,7 @@ def batch_means(samples, axis=0, normed=False, n_batch=25):
     batch_mean = np.stack((np.mean(batch, axis) for batch in batch_list), axis)
     mcmc_var = samples.shape[axis] / n_batch * np.var(batch_mean, axis)
     ess = np.var(samples, axis) / mcmc_var
-    if not normed: ess *= samples.shape[0]
+    if not normed: ess *= samples.shape[axis]
 
     return ess
 
