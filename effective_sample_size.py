@@ -22,106 +22,6 @@ warnings.formatwarning = lambda message, category, filename, lineno, line=None: 
 >>>>>>> d0a1600... Add proper warnings and exceptions when calling the R CODA package. Clean the code & add some comments too.
 
 
-def r_coda(samples, axis=0, normed=False, R_call='rpy', n_digit=18):
-    """
-    Estimates effective sample sizes of samples along the specified axis.
-
-    Parameters
-    ----------
-    R_call : {'rpy', 'external'}
-        If 'external', the samples are first saved as a csv file and the
-        method runs an R script from bash.
-    """
-    if R_call == 'rpy':
-        ess = coda_rpy(samples, axis, normed)
-    elif R_call == 'external':
-        ess = coda_external(samples, axis, normed, n_digit)
-    else:
-        raise NotImplementedError()
-    return ess
-
-
-def coda_rpy(samples, axis=0, normed=False):
-    """
-    Estimates effective sample sizes of samples along the specified axis by
-    calling the R package 'coda' via rpy2. Requires the package rpy2 to be installed.
-    """
-
-    try:
-        import rpy2.robjects.numpy2ri
-        rpy2.robjects.numpy2ri.activate()
-        import rpy2.robjects.packages as rpackages
-        from rpy2.rinterface import RRuntimeError
-    except ImportError:
-        warnings.warn(
-            'rpy2 needs to be installed to call this function.'
-        )
-        raise
-
-    try:
-        coda = rpackages.importr('coda')
-    except RRuntimeError:
-        warnings.warn('R CODA package not installed. Installing....')
-        utils = rpackages.importr('utils')
-        utils.install_packages('coda')
-        raise
-
-    ess = np.squeeze(np.array([
-        coda.effectiveSize(np.take(samples, i, axis))
-        for i in range(samples.shape[axis])
-    ]))
-    if normed:
-        ess = ess / samples.shape[axis]
-
-    return ess
-
-
-def coda_external(samples, axis=0, normed=False, n_digit=18,
-                  saveto_fname=None, loadfrom_fname=None):
-    """
-    Estimates effective sample sizes of samples along the specified axis by
-    calling the R package 'coda' externally. It is a hacky but convenient way
-    to call an R function without having to install rpy2 and its dependencies.
-    """
-
-    filenum = np.random.randint(2 ** 31)
-        # Append a random number to a file name to avoid conflicts.
-    if saveto_fname is None:
-        saveto_fname = 'mchain{:d}.csv'.format(filenum)
-    if loadfrom_fname is None:
-        loadfrom_fname = 'ess{:d}.csv'.format(filenum)
-
-    if axis == 0:
-        np.savetxt(saveto_fname, samples, delimiter=',', fmt='%.{:d}e'.format(n_digit))
-    else:
-        np.savetxt(saveto_fname, samples.T, delimiter=',', fmt='%.{:d}e'.format(n_digit))
-
-    # Write an R script for computing ESS with the 'coda' package if the script
-    # is not already present.
-    rscript_name = "compute_ess_with_coda.R"
-    r_code = "\"args <- commandArgs(trailingOnly=T) # Read in the input and output file names\n" \
-             + "x <- read.csv(args[1], header=F)\n" \
-             + "library(coda)\n" \
-             + "ess <- unlist(lapply(x, effectiveSize))\n" \
-             + "write.table(ess, args[2], sep=',', row.names=F, col.names=F)\""
-    os.system(" ".join(["[[ ! -f", rscript_name, "]] && echo", r_code, ">>", rscript_name]))
-
-    # Write the data to a text file, read into the R script, and output
-    # the result back into a text file.
-    exit_status = os.system(
-        " ".join(["Rscript", rscript_name, saveto_fname, loadfrom_fname])
-    )
-    if exit_status != 0:
-        raise RuntimeError("Command line call to an Rscript failed.")
-
-    ess = np.loadtxt(loadfrom_fname, delimiter=',').copy()
-    if normed:
-        ess = ess / samples.shape[axis]
-    os.system(" ".join(["rm -f", saveto_fname, loadfrom_fname]))
-
-    return ess
-
-
 def ar_process_fit(samples, max_ar_order=None, axis=0, normed=False):
     """
     Estimates effective sample sizes of samples along the specified axis by
@@ -275,3 +175,103 @@ def _compute_auto_corr(x, lag):
     """
     acorr = np.mean(x[:-lag] * x[lag:]) * (len(x) - lag) / len(x)
     return acorr
+
+
+def r_coda(samples, axis=0, normed=False, R_call='rpy', n_digit=18):
+    """
+    Estimates effective sample sizes of samples along the specified axis.
+
+    Parameters
+    ----------
+    R_call : {'rpy', 'external'}
+        If 'external', the samples are first saved as a csv file and the
+        method runs an R script from bash.
+    """
+    if R_call == 'rpy':
+        ess = coda_rpy(samples, axis, normed)
+    elif R_call == 'external':
+        ess = coda_external(samples, axis, normed, n_digit)
+    else:
+        raise NotImplementedError()
+    return ess
+
+
+def coda_rpy(samples, axis=0, normed=False):
+    """
+    Estimates effective sample sizes of samples along the specified axis by
+    calling the R package 'coda' via rpy2. Requires the package rpy2 to be installed.
+    """
+
+    try:
+        import rpy2.robjects.numpy2ri
+        rpy2.robjects.numpy2ri.activate()
+        import rpy2.robjects.packages as rpackages
+        from rpy2.rinterface import RRuntimeError
+    except ImportError:
+        warnings.warn(
+            'rpy2 needs to be installed to call this function.'
+        )
+        raise
+
+    try:
+        coda = rpackages.importr('coda')
+    except RRuntimeError:
+        warnings.warn('R CODA package not installed. Installing....')
+        utils = rpackages.importr('utils')
+        utils.install_packages('coda')
+        raise
+
+    ess = np.squeeze(np.array([
+        coda.effectiveSize(np.take(samples, i, axis))
+        for i in range(samples.shape[axis])
+    ]))
+    if normed:
+        ess = ess / samples.shape[axis]
+
+    return ess
+
+
+def coda_external(samples, axis=0, normed=False, n_digit=18,
+                  saveto_fname=None, loadfrom_fname=None):
+    """
+    Estimates effective sample sizes of samples along the specified axis by
+    calling the R package 'coda' externally. It is a hacky but convenient way
+    to call an R function without having to install rpy2 and its dependencies.
+    """
+
+    filenum = np.random.randint(2 ** 31)
+        # Append a random number to a file name to avoid conflicts.
+    if saveto_fname is None:
+        saveto_fname = 'mchain{:d}.csv'.format(filenum)
+    if loadfrom_fname is None:
+        loadfrom_fname = 'ess{:d}.csv'.format(filenum)
+
+    if axis == 0:
+        np.savetxt(saveto_fname, samples, delimiter=',', fmt='%.{:d}e'.format(n_digit))
+    else:
+        np.savetxt(saveto_fname, samples.T, delimiter=',', fmt='%.{:d}e'.format(n_digit))
+
+    # Write an R script for computing ESS with the 'coda' package if the script
+    # is not already present.
+    rscript_name = "compute_ess_with_coda.R"
+    r_code = "\"args <- commandArgs(trailingOnly=T) # Read in the input and output file names\n" \
+             + "x <- read.csv(args[1], header=F)\n" \
+             + "library(coda)\n" \
+             + "ess <- unlist(lapply(x, effectiveSize))\n" \
+             + "write.table(ess, args[2], sep=',', row.names=F, col.names=F)\""
+    os.system(" ".join(["[[ ! -f", rscript_name, "]] && echo", r_code, ">>", rscript_name]))
+
+    # Write the data to a text file, read into the R script, and output
+    # the result back into a text file.
+    exit_status = os.system(
+        " ".join(["Rscript", rscript_name, saveto_fname, loadfrom_fname])
+    )
+    if exit_status != 0:
+        raise RuntimeError("Command line call to an Rscript failed.")
+
+    ess = np.loadtxt(loadfrom_fname, delimiter=',').copy()
+    if normed:
+        ess = ess / samples.shape[axis]
+    os.system(" ".join(["rm -f", saveto_fname, loadfrom_fname]))
+
+    return ess
