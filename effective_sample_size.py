@@ -20,7 +20,7 @@ warnings.formatwarning = lambda message, category, filename, lineno, line=None: 
 )
 
 
-def ar_process_fit(samples, max_ar_order=None, axis=0, normed=False):
+def ar_process_fit(samples, axis=0, normed=False, max_ar_order=None):
     """
     Estimates effective sample sizes of samples along the specified axis by
     fitting an autoregressive process via the Yule-Walker equation. The order
@@ -62,7 +62,7 @@ def ar_process_fit(samples, max_ar_order=None, axis=0, normed=False):
     return ess
 
 
-def batch_means(samples, n_batch=25, axis=0, normed=False):
+def batch_means(samples, axis=0, normed=False, n_batch=25):
     """
     Estimates effective sample sizes of samples along the specified axis
     with the method of batch means.
