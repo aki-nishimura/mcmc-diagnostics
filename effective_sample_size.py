@@ -91,6 +91,11 @@ def coda_external(samples, axis=0, normed=False, n_digit=18):
 
 
 def ar_process_fit(samples, max_ar_order=None, axis=0, normed=False):
+    """
+    Estimates effective sample sizes of samples along the specified axis by
+    fitting an autoregressive process via the Yule-Walker equation. The order
+    of the AR process is determined via AIC.
+    """
 
     if samples.ndim == 1:
         samples = samples[:, np.newaxis]
