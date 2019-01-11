@@ -238,6 +238,13 @@ def _coda_external(samples, axis=0, normed=False, n_digit=18,
     """
 
     import os
+    import sys
+
+    if not (sys.platform.startswith('linux') or sys.platform == 'darwin'):
+        raise OSError(
+            "The current implementation uses bash commnads, so runs only on "
+            "Linux and Mac."
+        )
 
     filenum = np.random.randint(2 ** 31)
         # Append a random number to a file name to avoid conflicts.
