@@ -9,10 +9,10 @@ below and the references therein:
     https://arxiv.org/abs/1011.0175
 """
 
-import numpy as np
 import math
-from . import ar_model
 import warnings
+from . import ar_model
+import numpy as np
 
 # Monkey patch warnings
 warnings.formatwarning = lambda message, category, filename, lineno, line=None: (
