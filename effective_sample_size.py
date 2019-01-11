@@ -20,6 +20,51 @@ warnings.formatwarning = lambda message, category, filename, lineno, line=None: 
 )
 
 
+def estimate_ess(samples, axis=0, method='ar', normed=False, options={}):
+    """
+    Wrapper for calling a function specified by the `method` argument.
+    Estimates effective sample sizes (ESS) of samples along the specified axis.
+
+    Parameters
+    ----------
+    samples : numpy 1d or 2d array
+    axis : int, {0, 1}
+    method : str, {'ar', 'monotone-sequence', 'batch-means'}
+    normed : bool
+        If True, the efficiency (ESS per MCMC sample) is returned.
+    options : dict with keys in ['max_ar_order', 'n_batch']
+
+    Returns
+    -------
+    ess : numpy array
+    """
+
+    if type(samples) is not np.ndarray:
+        raise TypeError("The first argument must be a numpy array.")
+    if samples.ndim > 2:
+        raise ValueError("The function only supports a 1d or 2d array.")
+    if samples.ndim == 2 and axis == -1:
+        axis = 1
+    if axis not in [0, 1]:
+        raise ValueError("Invalid axis value.")
+
+    if method == 'ar':
+        max_ar_order = options.get('max_ar_order', None)
+        ess = ar_process_fit(samples, axis, normed, max_ar_order=max_ar_order)
+
+    elif method == 'monotone-sequence':
+        ess, _ = monotone_sequence(samples, axis, normed)
+
+    elif method == 'batch-means':
+        n_batch = options.get('n_batch', 25)
+        ess = batch_means(samples, axis, normed, n_batch=n_batch)
+
+    else:
+        raise NotImplementedError("Method {:s} is not supported.".format(method))
+
+    return ess
+
+
 def ar_process_fit(samples, axis=0, normed=False, max_ar_order=None):
     """
     Estimates effective sample sizes of samples along the specified axis by
