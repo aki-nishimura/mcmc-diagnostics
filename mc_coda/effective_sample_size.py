@@ -48,6 +48,12 @@ def estimate_ess(samples, axis=0, method='ar', normed=False, options={}):
     if axis not in [0, 1]:
         raise ValueError("Invalid axis value.")
 
+    if samples.shape[axis] <= 25:
+        warnings.warn(
+            "The number of samples is extremely small. The estimated ESS "
+            "will likely be not reliable at all."
+        )
+
     if method == 'ar':
         max_ar_order = options.get('max_ar_order', None)
         ess = ar_process_fit(samples, axis, normed, max_ar_order=max_ar_order)
