@@ -89,30 +89,36 @@ def ar_process_fit(samples, axis=0, normed=False, max_ar_order=None):
             max_ar_order = math.ceil(10 * np.log10(series_length))
 
     n_param = samples.shape[1 - axis]
-    ess = np.zeros(n_param)
+
     if series_length == 1: # Edge case
-        return ess
+        ess = np.zeros(n_param)
+    else:
+        if axis == 0:
+            samples = samples.T
+        ess = np.array([
+            _ar_process_fit_1d(x, max_ar_order) for x in samples
+            # Loop is over the rows of samples.
+        ])
 
-    for i in range(n_param):
+    if normed: ess /= series_length
 
-        x = np.take(samples, i, 1 - axis)
+    return ess
 
-        # Determine AR order.
-        ar_order, ar_coef = ar_model.fit(x, max_ar_order)
 
-        if ar_order == 0:
-            auto_corr_time = 1
-        else:
-            x_std = (x - np.mean(x)) / np.std(x)
-            acorr = np.array([
-                _compute_auto_corr(x_std, lag) for lag in range(1, ar_order + 1)
-            ])
-            auto_corr_time = (1 - np.inner(acorr, ar_coef)) / (1 - np.sum(ar_coef)) ** 2
-        ess[i] = 1 / auto_corr_time
+def _ar_process_fit_1d(x, max_ar_order):
 
-    if not normed:
-        ess *= series_length
+    ar_order, ar_coef = ar_model.fit(x, max_ar_order)
 
+    if ar_order == 0:
+        auto_corr_time = 1
+    else:
+        x_std = (x - np.mean(x)) / np.std(x)
+        acorr = np.array([
+            _compute_auto_corr(x_std, lag) for lag in range(1, ar_order + 1)
+        ])
+        auto_corr_time = (1 - np.inner(acorr, ar_coef)) / (1 - np.sum(ar_coef)) ** 2
+
+    ess = len(x) / auto_corr_time
     return ess
 
 
