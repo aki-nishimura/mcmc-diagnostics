@@ -300,7 +300,7 @@ def _coda_rpy(samples, axis=0, normed=False):
 
 
 def _coda_external(samples, axis=0, normed=False, n_digit=18,
-                   saveto_fname=None, loadfrom_fname=None):
+                   saveto_fname=None, loadfrom_fname=None, rscript_name=None):
     """
     Estimates effective sample sizes of samples along the specified axis by
     calling the R package 'coda' externally. It is a hacky but convenient way
@@ -322,6 +322,8 @@ def _coda_external(samples, axis=0, normed=False, n_digit=18,
         saveto_fname = 'mchain{:d}.csv'.format(filenum)
     if loadfrom_fname is None:
         loadfrom_fname = 'ess{:d}.csv'.format(filenum)
+    if rscript_name is None:
+        rscript_name = "compute_ess_with_coda.R"
 
     if axis == 0:
         np.savetxt(saveto_fname, samples, delimiter=',', fmt='%.{:d}e'.format(n_digit))
@@ -330,7 +332,6 @@ def _coda_external(samples, axis=0, normed=False, n_digit=18,
 
     # Write an R script for computing ESS with the 'coda' package if the script
     # is not already present.
-    rscript_name = "compute_ess_with_coda.R"
     r_code = "\"args <- commandArgs(trailingOnly=T) # Read in the input and output file names\n" \
              + "x <- read.csv(args[1], header=F)\n" \
              + "library(coda)\n" \
