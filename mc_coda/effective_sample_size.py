@@ -351,5 +351,6 @@ def _coda_external(samples, axis=0, normed=False, n_digit=18,
     if normed:
         ess = ess / samples.shape[axis]
     os.system(" ".join(["rm -f", saveto_fname, loadfrom_fname]))
+    os.system(" ".join(["rm -f", rscript_name]))
 
     return ess
