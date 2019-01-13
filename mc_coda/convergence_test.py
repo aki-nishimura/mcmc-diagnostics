@@ -58,7 +58,7 @@ def _brownian_bridge_statistic(x, frac_discard=.5):
     return stat
 
 
-def cramer_von_mises_cdf(x, n_summand=4):
+def cramer_von_mises_cdf(x, n_summand=None):
     """
     Computes the cumulative distribution function of the (asymptotic)
     Cramer-von-Mises statistics (the integral of a squared Brownian bridge
@@ -67,9 +67,12 @@ def cramer_von_mises_cdf(x, n_summand=4):
     Parameters
     ----------
     x : scalar
-    n_summand : int
-        The default value of 4 coincides to the R coda implementation.
+    n_summand : optional, int
+        The R coda (as of ver 0.19-1) uses 4, but we need more terms for a large
+        value of `x`.
     """
+    if n_summand is None:
+        n_summand = 5 if x < 10 else 10
     cum_density = 0
     for k in range(n_summand):
         cum_density += _cvm_cdf_summand(x, k)
