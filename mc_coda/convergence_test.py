@@ -39,8 +39,19 @@ def cramer_von_mises_statistic(x):
     return cvm_stat
 
 
-def _brownian_bridge_statistic(x):
-    spectrum_at_zero = np.var(x) / estimate_ess(x, normed=True)
+def _brownian_bridge_statistic(x, frac_discard=.5):
+    """
+    Parameters
+    ----------
+    frac_discard : float in [0, 1]
+        The non-stationarity can inflate the estimate of the spectrum at zero.
+        To avoid this, as proposed in Heidelberger and Welch (1983), discard
+        the initial fraction of the time series `x` (and hope that the rest of
+        the sequence looks more stationary).
+    """
+    n_discard = ceil(frac_discard * len(x))
+    x_subseq = x[n_discard:]
+    spectrum_at_zero = np.var(x_subseq) / estimate_ess(x_subseq, normed=True)
     cumsum = np.concatenate(([0], np.cumsum(x)))
     linear_interp = np.arange(len(x) + 1) * np.mean(x)
     stat = (cumsum - linear_interp) / np.sqrt(len(x) * spectrum_at_zero)
