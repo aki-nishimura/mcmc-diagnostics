@@ -17,11 +17,12 @@ from . import estimate_ess
 
 
 def is_stationarity(x, signif_level=.05):
-    return p_value_under_stationarity(x) < signif_level
+    return calculate_p_value(x) < signif_level
 
 
-def p_value_under_stationarity(x):
-    """
+def calculate_p_value(x):
+    """ Calculate the p-value under stationarity using Cramer-von-Mises statistics.
+
     Parameters
     ----------
     x: 1d numpy array
