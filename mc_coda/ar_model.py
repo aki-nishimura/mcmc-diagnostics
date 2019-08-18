@@ -88,6 +88,7 @@ def fit_via_yule_walker(x, order, acf_method="mle", demean=True):
     """
 
     if demean:
+        x = x.copy()
         x -= x.mean()
 
     if acf_method == "unbiased":
