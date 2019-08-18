@@ -20,22 +20,25 @@ def is_stationarity(x, signif_level=.05):
     return calculate_p_value(x) < signif_level
 
 
-def calculate_p_value(x):
+def calculate_p_value(x, ess_chain_frac=.5):
     """ Calculate the p-value under stationarity using Cramer-von-Mises statistics.
 
     Parameters
     ----------
     x: 1d numpy array
+    ess_chain_frac : float between 0 and 1
+        Fraction of the tail of the chain used in estimating the effective
+        sample size, which is needed in computing the test statistics.
     """
     if (type(x) is not np.ndarray) or x.ndim != 1:
         raise TypeError("The input must be a 1d numpy array.")
-    cvm_stat = cramer_von_mises_statistic(x)
+    cvm_stat = cramer_von_mises_statistic(x, ess_chain_frac)
     p_val = 1 - cramer_von_mises_cdf(cvm_stat)
     return p_val
 
 
-def cramer_von_mises_statistic(x):
-    bb_stat = _brownian_bridge_statistic(x)
+def cramer_von_mises_statistic(x, ess_chain_frac=.5):
+    bb_stat = _brownian_bridge_statistic(x, 1 - ess_chain_frac)
     cvm_stat = np.trapz(bb_stat ** 2, np.linspace(0, 1, len(bb_stat)))
     return cvm_stat
 
