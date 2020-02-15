@@ -271,15 +271,17 @@ def _coda_rpy(samples, axis=0, normed=False):
     """
 
     try:
-        import rpy2.robjects.numpy2ri
-        rpy2.robjects.numpy2ri.activate()
-        import rpy2.robjects.packages as rpackages
-        from rpy2.rinterface import RRuntimeError
+        import rpy2
     except ImportError:
         warnings.warn(
             'rpy2 needs to be installed to call this function.'
         )
         raise
+
+    import rpy2.robjects.numpy2ri
+    rpy2.robjects.numpy2ri.activate()
+    import rpy2.robjects.packages as rpackages
+    from rpy2.rinterface import RRuntimeError
 
     try:
         coda = rpackages.importr('coda')
@@ -287,7 +289,6 @@ def _coda_rpy(samples, axis=0, normed=False):
         warnings.warn('R CODA package not installed. Installing....')
         utils = rpackages.importr('utils')
         utils.install_packages('coda')
-        raise
 
     ess = np.squeeze(np.array([
         coda.effectiveSize(np.take(samples, i, axis))
