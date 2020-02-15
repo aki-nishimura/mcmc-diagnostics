@@ -2,7 +2,7 @@
 
 Python module providing common effective sample size (ESS) estimators along with some convergence diagnostics tools. The `estimate_ess` function computes ESS of one or two-dimensional array along the specified axis:
 ```python
-from mc_coda import estimate_ess
+from mcmc_diagnostics import estimate_ess
 ess = estimate_ess(samples, axis=-1)
 ```
 
