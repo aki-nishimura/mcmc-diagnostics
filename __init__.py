@@ -1,1 +1,1 @@
-from .mc_coda import estimate_ess
+from .mcmc_diagnostics import estimate_ess
